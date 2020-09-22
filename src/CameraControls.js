@@ -29,21 +29,21 @@ const CameraControls = () => {
   const controls = useRef();
 
   useFrame((state) => {
-    if (camera.position.x > 10) {
-      controls.current.target.x = 10;
-      camera.position.set(10, controls.current.target.y, camera.position.z);
+    if (camera.position.x > 30) {
+      controls.current.target.x = 30;
+      camera.position.set(30, controls.current.target.y, camera.position.z);
     }
-    if (camera.position.x < -1) {
-      controls.current.target.x = -1;
-      camera.position.set(-1, controls.current.target.y, camera.position.z);
+    if (camera.position.x < -30) {
+      controls.current.target.x = -30;
+      camera.position.set(-30, controls.current.target.y, camera.position.z);
     }
-    if (camera.position.y > 10) {
-      controls.current.target.y = 10;
-      camera.position.set(controls.current.target.x, 10, camera.position.z);
+    if (camera.position.y > 30) {
+      controls.current.target.y = 30;
+      camera.position.set(controls.current.target.x, 30, camera.position.z);
     }
-    if (camera.position.y < -1) {
-      controls.current.target.y = -1;
-      camera.position.set(controls.current.target.x, -1, camera.position.z);
+    if (camera.position.y < -30) {
+      controls.current.target.y = -30;
+      camera.position.set(controls.current.target.x, -30, camera.position.z);
     }
     controls.current.update();
   });

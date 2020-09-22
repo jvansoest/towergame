@@ -22,17 +22,17 @@ const Game = () => {
   const makeMatrix = (m, n) => {
     return Array.from({ length: m }, () => new Array(n).fill(0));
   };
-  const [matrix, _setMatrix] = useState(makeMatrix(800, 400));
-  const [lastCoords, setLastCoords] = useState({});
+  const [matrix, _setMatrix] = useState(makeMatrix(20, 20));
+  const [lastCoords, setLastCoords] = useState({ x: 0, y: 0 });
   const { camera } = useThree();
 
   const unSetMatrix = (matrix, x, y) => {
+    console.log("UNsetting box on pos:", x, y);
     _setMatrix(
       matrix.map((arr, i) => {
         if (x === i) {
           return arr.map((value, j) => {
             if (y === j) {
-              setLastCoords({ x: x, y: y });
               return 0;
             } else {
               return value;
@@ -46,6 +46,7 @@ const Game = () => {
   };
 
   const setMatrix = (matrix, x, y) => {
+    console.log("setting box on pos:", x, y);
     _setMatrix(
       matrix.map((arr, i) => {
         if (x === i) {
@@ -72,7 +73,10 @@ const Game = () => {
         const element = array[col];
         if (element === 1) {
           boxes.push(
-            <Box key={row + "" + col} position={[row - 100, col - 50, -10]} />
+            <Box
+              key={row + "" + col}
+              position={[(row - 10) * 10, (col - 10) * 5, -10]}
+            />
           );
         }
       }
@@ -104,9 +108,8 @@ const Game = () => {
 
   const makeGrid = (vec) => {
     //make grid
-    const posX = Math.round((vec.x + 100) / 10) * 10;
-    const posY = Math.round((vec.y + 50) / 5) * 5;
-    console.log(posX, posY);
+    const posX = Math.round(vec.x / 10) + 10;
+    const posY = Math.round(vec.y / 5) + 10;
     return [posX, posY];
   };
 
