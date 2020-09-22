@@ -20,6 +20,7 @@ extend({ OrbitControls });
 const CameraControls = () => {
   // Get a reference to the Three.js Camera, and the canvas html element.
   const {
+    mouse,
     camera,
     gl: { domElement },
   } = useThree();

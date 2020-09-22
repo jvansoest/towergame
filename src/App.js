@@ -20,7 +20,7 @@ const App = () => {
   return (
     <Canvas
       style={{ height: 400, width: 800 }}
-      camera={{ fov: 50, position: [0, 0, 110], aspect: 70 }}
+      camera={{ fov: 50, position: [0, 0, 110], aspect: 800 / 400 }}
     >
       <Game />
     </Canvas>
