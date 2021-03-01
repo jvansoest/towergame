@@ -3,8 +3,10 @@ import socketio
 import os
 # creates a new Async Socket IO Server
 sio = socketio.AsyncServer(cors_allowed_origins='*')
+
 # Creates a new Aiohttp Web Application
 app = web.Application()
+
 # Binds our Socket.IO server to our Web App
 # instance
 sio.attach(app)

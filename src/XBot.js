@@ -1,9 +1,9 @@
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef } from "react";
 import { useLoader, useFrame } from "react-three-fiber";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import model3d from "./models/Xbot.glb";
 import * as THREE from "three";
-import Box from "./Box.js";
+
 //HOW TO USE: <Suspense fallback={<Box />}>{<XBot />}</Suspense>
 const XBot = (props) => {
   const mesh = useRef();

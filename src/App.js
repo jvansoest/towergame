@@ -1,5 +1,7 @@
 import React from "react";
 
+import Chat from "./Chat";
+
 /*
   THREE
 */
@@ -18,12 +20,15 @@ extend({ OrbitControls });
 
 const App = () => {
   return (
-    <Canvas
-      style={{ height: 400, width: 800 }}
-      camera={{ fov: 50, position: [0, 0, 70], aspect: 800 / 400 }}
-    >
-      <Game />
-    </Canvas>
+    <>
+      <Canvas
+        style={{ height: 400, width: 800 }}
+        camera={{ fov: 50, position: [0, 0, 70], aspect: 800 / 400 }}
+      >
+        <Game />
+      </Canvas>
+      <Chat />
+    </>
   );
 };
 export default App;

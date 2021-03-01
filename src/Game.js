@@ -18,9 +18,9 @@ import BackGround from "./BackGround.js";
 import Box from "./Box.js";
 import CameraControls from "./CameraControls.js";
 import GroundFloor from "./GroundFloor.js";
-/*HUD*/
-import Hud from "./Hud";
+
 import XBot from "./XBot.js";
+
 /*
   ORBIT CONTROLS
 */
@@ -89,7 +89,6 @@ const Game = () => {
 
   return (
     <>
-      <Hud />
       <CameraControls />
       <ambientLight />
       <pointLight position={[100, 100, 100]} />

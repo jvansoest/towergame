@@ -1,9 +1,6 @@
 import React, { useRef, useState } from "react";
-import { useLoader } from "react-three-fiber";
-import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
-import model from "./models/roombox2.glb";
 import * as THREE from "three";
-import { extend, useThree } from "react-three-fiber";
+import { useThree } from "react-three-fiber";
 import Box from "./Box.js";
 
 function Grid(props) {
@@ -24,8 +21,8 @@ function Grid(props) {
     var intersects = raycaster.intersectObjects(scene.children);
     console.log(intersects);
     if (intersects.length > 0) {
-      var intersect = intersects[0];
-      var coordinates = intersect[0].points;
+      //var intersect = intersects[0];
+      //var coordinates = intersect[0].points;
       setShowBox(true);
     }
   };

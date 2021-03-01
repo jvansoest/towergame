@@ -1,7 +1,7 @@
 import React, { useRef, useState } from "react";
-import { useThree } from "react-three-fiber";
 import Box from "./Box.js";
 import { gridToCoords } from "./Utilities.js";
+
 function BackGround(props) {
   const mesh = useRef();
   const [hovered, setHover] = useState(false);

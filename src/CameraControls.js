@@ -3,13 +3,10 @@ import React, { useRef } from "react";
 /*
   THREE
 */
-import { Canvas, useFrame, extend, useThree } from "react-three-fiber";
-import * as THREE from "three";
+import { useFrame, extend, useThree } from "react-three-fiber";
 /*
   MODELS
 */
-
-import Box from "./Box.js";
 
 /*
   ORBIT CONTROLS
@@ -20,7 +17,7 @@ extend({ OrbitControls });
 const CameraControls = () => {
   // Get a reference to the Three.js Camera, and the canvas html element.
   const {
-    mouse,
+    //mouse,
     camera,
     gl: { domElement },
   } = useThree();

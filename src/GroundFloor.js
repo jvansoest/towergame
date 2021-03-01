@@ -1,10 +1,10 @@
-import React, { useRef, useState } from "react";
-import { useFrame } from "react-three-fiber";
+import React, { useRef } from "react";
+//import { useFrame } from "react-three-fiber";
 
 function GroundFloor(props) {
   const mesh = useRef();
-  const [hovered, setHover] = useState(false);
-  const [active, setActive] = useState(false);
+  //const [hovered, setHover] = useState(false);
+  //const [active, setActive] = useState(false);
 
   return (
     <mesh {...props} ref={mesh}>
