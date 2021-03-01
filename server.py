@@ -44,14 +44,14 @@ async def print_message(sid, message):
 @sio.on('boxplaced')
 async def box_placed(sid, coords):
     print("Socket ID: ", sid)
-    
+
     x = coords['x']
     y = coords['y']
     MATRIX[x,y] = 1
 
     print("Box placed on: (" , x, ',', y,')')
 
-    await sio.emit('boxupdate', {'x': x, 'y': y})
+    await sio.emit('boxupdate', {'x': x, 'y': y, 'matrix': MATRIX.tolist()})
 
 # We bind our aiohttp endpoint to our app
 # router

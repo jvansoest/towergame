@@ -4,7 +4,7 @@ import socket from "./socket.js";
 /*
 UTILITIES
 */
-import makeMatrix, { setMatrixValueAtIndex } from "./Utilities.js";
+import makeMatrix from "./Utilities.js";
 
 /*
   THREE
@@ -31,12 +31,11 @@ extend({ OrbitControls });
 const Game = () => {
   const raycaster = new THREE.Raycaster();
   const [matrix, _setMatrix] = useState(makeMatrix(20, 20));
-  const [t, setT] = useState(null);
   const { camera, mouse, scene } = useThree();
 
-  const setMatrix = (matrix, x, y) => {
-    _setMatrix(setMatrixValueAtIndex(matrix, x, y, 1));
-  };
+  // const setMatrix = (matrix, x, y) => {
+  //   _setMatrix(setMatrixValueAtIndex(matrix, x, y, 1));
+  // };
 
   const filterArrayToBoxes = (matrix) => {
     const boxes = [];
@@ -77,7 +76,7 @@ const Game = () => {
   const handleClick = (e) => {
     const coordinates = getPlaneXYfromMouse();
     const [posX, posY] = makeGrid(coordinates);
-    setMatrix(matrix, posX, posY);
+
     sendCoords(posX, posY);
   };
 
@@ -86,7 +85,7 @@ const Game = () => {
   };
 
   const setter = (data) => {
-    setMatrix(matrix, data.x, data.y);
+    _setMatrix(data.matrix);
     console.log(data);
   };
 
