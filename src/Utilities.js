@@ -3,9 +3,6 @@ const makeMatrix = (m, n) => {
 };
 
 const setMatrixValueAtIndex = (matrix, row, col, valueToSet) => {
-  /*
-    functional
-  */
   return matrix.map((arr, i) => {
     if (row === i) {
       return arr.map((value, j) => {

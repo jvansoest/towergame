@@ -1,6 +1,7 @@
 from aiohttp import web
 import socketio
 import os
+import numpy as np
 # creates a new Async Socket IO Server
 sio = socketio.AsyncServer(cors_allowed_origins='*')
 
@@ -23,7 +24,7 @@ sio.attach(app)
 # event we wish to listen out for
 
 CHAT = []
-
+MATRIX = np.zeros((20,20))
 
 @sio.on('connect')
 def on_connect(a, b):
@@ -39,6 +40,18 @@ async def print_message(sid, message):
     CHAT.append(message)
     print("CHAT:", CHAT)
     await sio.emit('chatUpdate', {'chat': CHAT})
+
+@sio.on('boxplaced')
+async def box_placed(sid, coords):
+    print("Socket ID: ", sid)
+    
+    x = coords['x']
+    y = coords['y']
+    MATRIX[x,y] = 1
+
+    print("Box placed on: (" , x, ',', y,')')
+
+    await sio.emit('boxupdate', {'x': x, 'y': y})
 
 # We bind our aiohttp endpoint to our app
 # router

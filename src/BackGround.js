@@ -18,8 +18,6 @@ function BackGround(props) {
       <Box
         key={box.y + "" + box.x}
         position={gridToCoords(box.x, box.y, -10)}
-
-        //position={[(box.x - 10) * 10, (box.y - 10) * 5, -10]}
       />
       <mesh
         {...props}
@@ -36,5 +34,5 @@ function BackGround(props) {
     </>
   );
 }
-//<Box position={[10, 10, 0]} />
+
 export default BackGround;

@@ -1,5 +1,6 @@
-import React, { Suspense, useState } from "react";
+import React, { Suspense, useState, useEffect } from "react";
 
+import socket from "./socket.js";
 /*
 UTILITIES
 */
@@ -30,22 +31,14 @@ extend({ OrbitControls });
 const Game = () => {
   const raycaster = new THREE.Raycaster();
   const [matrix, _setMatrix] = useState(makeMatrix(20, 20));
+  const [t, setT] = useState(null);
   const { camera, mouse, scene } = useThree();
 
-  // const unSetMatrix = (matrix, x, y) => {
-  //   console.log("UNsetting box on pos:", x, y);
-  //   _setMatrix(setMatrixValueAtIndex(matrix, x, y, 0));
-  // };
-
   const setMatrix = (matrix, x, y) => {
-    console.log("setting box on pos:", x, y);
     _setMatrix(setMatrixValueAtIndex(matrix, x, y, 1));
   };
 
   const filterArrayToBoxes = (matrix) => {
-    /*
-      Functional
-    */
     const boxes = [];
     for (let row = 0; row < matrix.length; row++) {
       const array = matrix[row];
@@ -85,7 +78,24 @@ const Game = () => {
     const coordinates = getPlaneXYfromMouse();
     const [posX, posY] = makeGrid(coordinates);
     setMatrix(matrix, posX, posY);
+    sendCoords(posX, posY);
   };
+
+  const sendCoords = (x, y) => {
+    socket.emit("boxplaced", { x: x, y: y });
+  };
+
+  const setter = (data) => {
+    setMatrix(matrix, data.x, data.y);
+    console.log(data);
+  };
+
+  useEffect(() => {
+    socket.on("boxupdate", setter);
+    return () => {
+      socket.off("boxupdate", setter);
+    };
+  });
 
   return (
     <>
@@ -93,9 +103,8 @@ const Game = () => {
       <ambientLight />
       <pointLight position={[100, 100, 100]} />
       <BackGround
-        matrix={matrix}
+        // matrix={matrix}
         makeGrid={makeGrid}
-        setMatrix={setMatrix}
         getPlaneXYfromMouse={getPlaneXYfromMouse}
         onClick={handleClick}
         position={[0, 0, -10]}
