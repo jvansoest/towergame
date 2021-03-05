@@ -2,61 +2,86 @@ from aiohttp import web
 import socketio
 import os
 import numpy as np
-# creates a new Async Socket IO Server
+from datetime import datetime
+
+
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKCYAN = '\033[96m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
+
 sio = socketio.AsyncServer(cors_allowed_origins='*')
-
-# Creates a new Aiohttp Web Application
 app = web.Application()
-
-# Binds our Socket.IO server to our Web App
-# instance
+# Binds our Socket.IO server to our Web App instance
 sio.attach(app)
-# we can define aiohttp endpoints just as we normally
-# would with no change
 
 
-# async def index(request):
-#     with open('client/build/index.html') as f:
-#         return web.Response(text=f.read(), content_type='text/html')
+STATE = {"messages": [],
+         "matrix": np.zeros((20, 20))}
 
-# If we wanted to create a new websocket endpoint,
-# use this decorator, passing in the name of the
-# event we wish to listen out for
-
-CHAT = []
-MATRIX = np.zeros((20,20))
 
 @sio.on('connect')
-def on_connect(a, b):
-    print('connection established', a, " ", b['REMOTE_ADDR'])
+async def on_connect(a, b):
+    print(bcolors.WARNING + 'connection established' + bcolors.ENDC,
+          a, " to ", b['REMOTE_ADDR'])
+
+    #STATE['messages'] = []
+    #STATE['matrix'] = np.zeros((20, 20))
+
+    await sio.emit('chatUpdate', {'chat': STATE['messages']})
+
+
+@sio.on('disconnect')
+def disconnect(sid):
+    print(bcolors.WARNING + 'connection disconnected' + bcolors.ENDC, sid)
+
+
+def get_time_string():
+    now = datetime.now()
+    current_time = now.strftime("%H:%M:%S")
+    return f'[{current_time}] '
 
 
 @sio.on('message')
 async def print_message(sid, message):
-    # When we receive a new event of type
-    # 'message' through a socket.io connection
-    # we print the socket ID and the message
-    print("Socket ID: ", sid)
-    CHAT.append(message)
-    print("CHAT:", CHAT)
-    await sio.emit('chatUpdate', {'chat': CHAT})
+
+    current_time = get_time_string()
+    STATE['messages'].append(current_time+message)
+
+    print(bcolors.WARNING +
+          current_time +
+          bcolors.ENDC +
+          bcolors.BOLD +
+          "Socket ID: " +
+          bcolors.ENDC,
+          sid,
+          bcolors.BOLD +
+          " received message: " +
+          bcolors.ENDC +
+          "[" +
+          message[:20] + "...]")
+
+    await sio.emit('chatUpdate', {'chat': STATE['messages']})
+
 
 @sio.on('boxplaced')
 async def box_placed(sid, coords):
     print("Socket ID: ", sid)
-
     x = coords['x']
     y = coords['y']
-    MATRIX[x,y] = 1
+    print("Box placed on: (", x, ',', y, ')')
 
-    print("Box placed on: (" , x, ',', y,')')
+    STATE['matrix'][x, y] = 1
 
-    await sio.emit('boxupdate', {'x': x, 'y': y, 'matrix': MATRIX.tolist()})
+    await sio.emit('boxupdate', {'x': x, 'y': y, 'matrix': STATE['matrix'].tolist()})
 
-# We bind our aiohttp endpoint to our app
-# router
-# app.router.add_get('/', index)
 
-# We kick off our server
 if __name__ == '__main__':
     web.run_app(app, host='0.0.0.0', port=7777)

@@ -1,6 +1,7 @@
 import React from "react";
 
 import Chat from "./Chat";
+import { Container } from "reactstrap";
 
 /*
   THREE
@@ -20,7 +21,7 @@ extend({ OrbitControls });
 
 const App = () => {
   return (
-    <>
+    <Container>
       <Canvas
         style={{ height: 400, width: 800 }}
         camera={{ fov: 50, position: [0, 0, 70], aspect: 800 / 400 }}
@@ -28,7 +29,7 @@ const App = () => {
         <Game />
       </Canvas>
       <Chat />
-    </>
+    </Container>
   );
 };
 export default App;
