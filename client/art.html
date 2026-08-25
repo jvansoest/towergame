@@ -1,0 +1,36 @@
+<!doctype html><html><body style="margin:0;background:#3a3a3a">
+<div id="out"></div>
+<script type="module">
+import { roomArt } from "./src/roomArt.ts";
+import { propArt } from "./src/propArt.ts";
+const CELL_W = 1.5, CELL_H = 3;
+const out = document.getElementById("out");
+const label = (t) => {
+  const d = document.createElement("div");
+  d.textContent = t;
+  d.style.cssText = "color:#eee;font:12px monospace;padding:4px 0 2px";
+  out.appendChild(d);
+};
+const show = (cv, k) => {
+  const big = document.createElement("canvas");
+  big.width = cv.width * k; big.height = cv.height * k;
+  const g = big.getContext("2d");
+  g.imageSmoothingEnabled = false;
+  g.drawImage(cv, 0, 0, big.width, big.height);
+  out.appendChild(big);
+};
+for (const [type, cells, floors] of [
+  ["condo", 10, 1], ["office", 9, 1], ["restaurant", 24, 1],
+  ["fastfood", 16, 1], ["shop", 12, 1], ["hotel_single", 5, 1],
+  ["hotel_suite", 10, 1],
+]) {
+  label(type);
+  const tex = roomArt(type, cells * CELL_W, floors * CELL_H);
+  if (tex) show(tex.image, 1);
+}
+for (const kind of ["chair", "table", "workdesk", "zzz0", "zzz1", "zzz2"]) {
+  const p = propArt(kind);
+  label(kind + "  " + p.w + " x " + p.h + " units");
+  show(p.tex.image, 3);
+}
+</script></body></html>
