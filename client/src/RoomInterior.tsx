@@ -1,11 +1,20 @@
 // One room, drawn open-front: shell, art, and fittings.
 
+import { memo } from "react";
+
 import { roomArt } from "./roomArt";
 import { lobbyArt } from "./lobbyArt";
 import { DAY, FLOOR_T, NIGHT, WALL_T } from "./dims";
 import { CONCRETE, FLOOR, WALL, shadeHex } from "./roomTint";
 import { BackWall, SideWall } from "./RoomShell";
-import Furniture, { Seating } from "./Furniture";
+import Furniture, {
+  Bar,
+  Mess,
+  Seating,
+  ServiceCounter,
+  counterFor,
+} from "./Furniture";
+import { getTypes } from "./catalog";
 import SleepSign, { BED_X } from "./SleepSign";
 
 type Props = {
@@ -17,10 +26,14 @@ type Props = {
   seats: number; // desks or chairs to draw
   lit: boolean;
   occupants: number; // people in the room now
+  roomLeft?: boolean; // a party wall to the west
+  roomRight?: boolean; // a party wall to the east
+  variant?: number; // which look of the art
+  dirty?: boolean; // a hotel room needing a maid
 };
 
 // Open-front room shell with furniture.
-export default function RoomInterior({
+function RoomInterior({
   width,
   height,
   depth,
@@ -29,14 +42,19 @@ export default function RoomInterior({
   seats,
   lit,
   occupants,
+  roomLeft,
+  roomRight,
+  variant = 0,
+  dirty,
 }: Props) {
   // The tint multiplies into every surface.
   const shade = lit ? DAY : NIGHT;
   const wall = shadeHex(WALL[category] ?? "#e5e7eb", shade);
   const floor = shadeHex(FLOOR[category] ?? CONCRETE, shade);
   const floorTop = -height / 2 + FLOOR_T;
-  const art = roomArt(type, width, height);
+  const art = roomArt(type, width, height, variant);
   const lobbyWall = category === "lobby" ? lobbyArt(width, height) : null;
+  const line = getTypes().find((t) => t.id === type)?.line;
   const sleeping = !lit && occupants > 0 && BED_X[type] !== undefined;
 
   // Painted rooms bring their own furniture, not their slab.
@@ -45,25 +63,44 @@ export default function RoomInterior({
       <group>
         <mesh position={[0, 0, -depth / 2 + 0.15]}>
           <planeGeometry args={[width, height]} />
-          <meshBasicMaterial map={art} color={shade} toneMapped={false} />
+          <meshBasicMaterial
+            map={art}
+            color={shade}
+            toneMapped={false}
+            transparent
+          />
         </mesh>
         <mesh position={[0, -height / 2 + FLOOR_T / 2, 0]}>
           <boxGeometry args={[width, FLOOR_T, depth]} />
           <meshStandardMaterial color={floor} />
         </mesh>
-        <Seating
-          seats={seats}
-          width={width}
-          category={category}
-          floorTop={floorTop}
-          shade={shade}
-        />
+        {dirty && <Mess floorTop={floorTop} shade={shade} />}
+        {line ? (
+          <Bar type={type} seats={seats} width={width} floorTop={floorTop} shade={shade} />
+        ) : (
+          <Seating
+            seats={seats}
+            width={width}
+            category={category}
+            floorTop={floorTop}
+            shade={shade}
+          />
+        )}
+        {counterFor(type) && (
+          <ServiceCounter
+            kind={counterFor(type)!}
+            width={width}
+            floorTop={floorTop}
+            shade={shade}
+          />
+        )}
         <SideWall
           x={-width / 2 + WALL_T / 2}
           innerFace={0}
           h={height}
           depth={depth}
           tint={wall}
+          shared={roomLeft}
         />
         <SideWall
           x={width / 2 - WALL_T / 2}
@@ -71,14 +108,10 @@ export default function RoomInterior({
           h={height}
           depth={depth}
           tint={wall}
+          shared={roomRight}
         />
         {sleeping && (
-          <SleepSign
-            type={type}
-            width={width}
-            height={height}
-            shade={shade}
-          />
+          <SleepSign type={type} width={width} height={height} shade={shade} />
         )}
       </group>
     );
@@ -104,8 +137,22 @@ export default function RoomInterior({
         <boxGeometry args={[width, FLOOR_T, depth]} />
         <meshStandardMaterial color={floor} />
       </mesh>
-      <SideWall x={-width / 2 + WALL_T / 2} innerFace={0} h={height} depth={depth} tint={wall} />
-      <SideWall x={width / 2 - WALL_T / 2} innerFace={1} h={height} depth={depth} tint={wall} />
+      <SideWall
+        x={-width / 2 + WALL_T / 2}
+        innerFace={0}
+        h={height}
+        depth={depth}
+        tint={wall}
+        shared={roomLeft}
+      />
+      <SideWall
+        x={width / 2 - WALL_T / 2}
+        innerFace={1}
+        h={height}
+        depth={depth}
+        tint={wall}
+        shared={roomRight}
+      />
       <Furniture
         category={category}
         width={width}
@@ -115,3 +162,6 @@ export default function RoomInterior({
     </group>
   );
 }
+
+// Props are plain values, so skip unchanged rooms.
+export default memo(RoomInterior);

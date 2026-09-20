@@ -11,8 +11,9 @@ const (
 
 // A staircase connecting two floors.
 type Stair struct {
-	Floor int `json:"floor"` // bottom floor
-	Col   int `json:"col"`
+	Floor     int  `json:"floor"` // bottom floor
+	Col       int  `json:"col"`
+	Escalator bool `json:"escalator,omitempty"` // moves both ways by itself
 }
 
 // Center column (cell-center), used by pathfinding.
@@ -32,7 +33,16 @@ func (s Stair) HeadCol() float64 {
 
 // Places a stair after validation.
 func (g *Grid) PlaceStair(floor, col int) error {
-	if floor < 0 || floor+StairHeight > g.Floors {
+	return g.placeRun(floor, col, false)
+}
+
+// Places an escalator; it takes the same room as a stair.
+func (g *Grid) PlaceEscalator(floor, col int) error {
+	return g.placeRun(floor, col, true)
+}
+
+func (g *Grid) placeRun(floor, col int, escalator bool) error {
+	if floor < -Basement || floor+StairHeight > g.Floors {
 		return fmt.Errorf("floor %d out of range", floor)
 	}
 	if col < 0 || col+StairWidth > g.Width {
@@ -49,12 +59,17 @@ func (g *Grid) PlaceStair(floor, col int) error {
 			return fmt.Errorf("overlaps a stair")
 		}
 	}
-	for f := floor; f < floor+StairHeight; f++ {
-		for c := col; c < col+StairWidth; c++ {
-			g.Built[f][c] = true
+	for _, rp := range g.Ramps {
+		if overlaps(col, StairWidth, floor, StairHeight, rp.Col, RampWidth, rp.Floor, 1) {
+			return fmt.Errorf("overlaps a car ramp")
 		}
 	}
-	g.Stairs = append(g.Stairs, Stair{Floor: floor, Col: col})
+	for f := floor; f < floor+StairHeight; f++ {
+		for c := col; c < col+StairWidth; c++ {
+			g.setBuilt(f, c, true)
+		}
+	}
+	g.Stairs = append(g.Stairs, Stair{Floor: floor, Col: col, Escalator: escalator})
 	return nil
 }
 
@@ -186,14 +201,22 @@ func (g *Grid) RemoveElevatorAt(floor, col int) (ShaftID, bool) {
 	return 0, false
 }
 
-// Removes the stair at a cell.
+// Removes the stair covering a cell, so
+// either row of the run counts as a hit.
 func (g *Grid) RemoveStairAt(floor, col int) bool {
+	_, ok := g.RemoveRunAt(floor, col)
+	return ok
+}
+
+// Same, but says which run went.
+func (g *Grid) RemoveRunAt(floor, col int) (Stair, bool) {
 	for i := range g.Stairs {
 		s := g.Stairs[i]
-		if col >= s.Col && col < s.Col+StairWidth && floor == s.Floor {
+		if col >= s.Col && col < s.Col+StairWidth &&
+			floor >= s.Floor && floor < s.Floor+StairHeight {
 			g.Stairs = append(g.Stairs[:i], g.Stairs[i+1:]...)
-			return true
+			return s, true
 		}
 	}
-	return false
+	return Stair{}, false
 }

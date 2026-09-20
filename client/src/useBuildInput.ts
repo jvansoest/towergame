@@ -8,6 +8,7 @@ import type { ThreeEvent } from "@react-three/fiber";
 import socket from "./socket";
 import { askInspect } from "./inspect";
 import { useSelectedRoom, setHover, type Hover } from "./store";
+import { builtAt } from "./gridCells";
 import { CELL_W, CELL_H } from "./dims";
 import type { GridView } from "./protocol";
 
@@ -18,37 +19,55 @@ const PAINTABLE = new Set(["base", "lobby"]);
 export type ShaftDrag = { col: number; from: number; top: number };
 
 // What sits at a cell, for the inspector's highlight.
-function thingAt(grid: GridView | null, floor: number, col: number): Hover {
+function thingAt(
+  grid: GridView | null,
+  floor: number,
+  col: number,
+  bases = false,
+): Hover {
   if (!grid) return null;
   const room = grid.rooms?.find(
     (r) =>
       floor >= r.floor &&
       floor < r.floor + r.height &&
       col >= r.col &&
-      col < r.col + r.width
+      col < r.col + r.width,
   );
   if (room) return { kind: "room", key: `${room.floor},${room.col}` };
 
   const shaft = grid.elevators?.find(
     (e) =>
-      floor >= e.bottom && floor <= e.top && col >= e.col && col < e.col + e.width
+      floor >= e.bottom &&
+      floor <= e.top &&
+      col >= e.col &&
+      col < e.col + e.width,
   );
   if (shaft) return { kind: "shaft", id: shaft.id };
+
+  const ramp = grid.ramps?.find(
+    (r) => floor === r.floor && col >= r.col && col < r.col + r.width,
+  );
+  if (ramp) return { kind: "ramp", key: `${ramp.floor},${ramp.col}` };
 
   const stair = grid.stairs?.find(
     (s) =>
       floor >= s.floor &&
       floor < s.floor + s.height + 1 &&
       col >= s.col &&
-      col < s.col + s.width
+      col < s.col + s.width,
   );
   if (stair) return { kind: "stair", key: `${stair.floor},${stair.col}` };
+  if (bases && builtAt(grid, floor, col)) {
+    return { kind: "base", key: `${floor},${col}` };
+  }
   return null;
 }
 
 export default function useBuildInput(grid: GridView | null) {
   const selectedRoom = useSelectedRoom();
   const inspecting = selectedRoom === "inspect";
+  // Both tools mark the thing under the pointer.
+  const marking = inspecting || selectedRoom === "bulldoze";
 
   const painting = useRef(false);
   const painted = useRef<Set<string>>(new Set());
@@ -72,8 +91,8 @@ export default function useBuildInput(grid: GridView | null) {
 
   // Drop the highlight when the tool changes.
   useEffect(() => {
-    if (!inspecting) setHover(null);
-  }, [inspecting]);
+    if (!marking) setHover(null);
+  }, [marking]);
 
   const cellFromPoint = (p: THREE.Vector3) => {
     if (!grid) return null;
@@ -111,6 +130,10 @@ export default function useBuildInput(grid: GridView | null) {
       painted.current = new Set();
       lastCell.current = null;
       paintTo(cell.col, cell.floor);
+    } else if (selectedRoom === "ramp") {
+      socket.emit("placeramp", { floor: cell.floor, col: cell.col });
+    } else if (selectedRoom === "escalator") {
+      socket.emit("placeescalator", { floor: cell.floor, col: cell.col });
     } else if (selectedRoom === "stairs") {
       socket.emit("placestair", { floor: cell.floor, col: cell.col });
     } else if (selectedRoom === "elevator") {
@@ -133,8 +156,9 @@ export default function useBuildInput(grid: GridView | null) {
 
   const onPointerMove = (e: ThreeEvent<PointerEvent>) => {
     const cell = cellFromPoint(e.point);
-    if (inspecting) {
-      setHover(cell ? thingAt(grid, cell.floor, cell.col) : null);
+    if (marking) {
+      const bases = selectedRoom === "bulldoze";
+      setHover(cell ? thingAt(grid, cell.floor, cell.col, bases) : null);
       return;
     }
     if (dragging.current && cell) {

@@ -7,6 +7,7 @@ const (
 	ModeWalk = iota
 	ModeStair
 	ModeElevator
+	ModeEscalator
 )
 
 // A step in a route.
@@ -20,16 +21,21 @@ type Waypoint struct {
 // One connector traversal in a route.
 // A stair run enters at col and leaves at exit.
 type stairStep struct {
-	col   float64
-	exit  float64
-	from  int
-	to    int
-	shaft ShaftID // 0 for a stair
+	col    float64
+	exit   float64
+	from   int
+	to     int
+	shaft  ShaftID // 0 for a stair
+	moving bool    // an escalator carries them
+	hop    float64 // cost of using this connector
 }
 
 // Cost of one connector, in cells of walking.
 // Keeps a route from hopping between connectors for nothing.
 const transferCost = 4.0
+
+// An escalator is easier than stairs.
+const escalatorCost = 1.0
 
 // Floor connections, keyed by the floor they leave from.
 func (g *Grid) floorEdges() map[int][]stairStep {
@@ -37,10 +43,16 @@ func (g *Grid) floorEdges() map[int][]stairStep {
 	for _, s := range g.Stairs {
 		// The run climbs left to right, so the ends differ.
 		lo, hi := s.FootCol(), s.HeadCol()
-		adj[s.Floor] = append(adj[s.Floor],
-			stairStep{col: lo, exit: hi, from: s.Floor, to: s.Floor + 1})
-		adj[s.Floor+1] = append(adj[s.Floor+1],
-			stairStep{col: hi, exit: lo, from: s.Floor + 1, to: s.Floor})
+		hop := transferCost
+		if s.Escalator {
+			hop = escalatorCost
+		}
+		adj[s.Floor] = append(adj[s.Floor], stairStep{
+			col: lo, exit: hi, from: s.Floor, to: s.Floor + 1,
+			moving: s.Escalator, hop: hop})
+		adj[s.Floor+1] = append(adj[s.Floor+1], stairStep{
+			col: hi, exit: lo, from: s.Floor + 1, to: s.Floor,
+			moving: s.Escalator, hop: hop})
 	}
 	for _, e := range g.Elevators {
 		c := e.CenterCol()
@@ -48,7 +60,7 @@ func (g *Grid) floorEdges() map[int][]stairStep {
 			for b := e.Bottom; b <= e.Top; b++ {
 				if a != b {
 					adj[a] = append(adj[a],
-						stairStep{col: c, exit: c, from: a, to: b, shaft: e.ID})
+						stairStep{col: c, exit: c, from: a, to: b, shaft: e.ID, hop: transferCost})
 				}
 			}
 		}
@@ -74,19 +86,19 @@ func (g *Grid) routeFloors(fromFloor, fromCol, toFloor, toCol int, elevCost Elev
 	done := map[int]bool{}
 
 	for {
-		cur, best := -1, math.MaxFloat64
+		cur, best, found := 0, math.MaxFloat64, false
 		for f, d := range dist {
 			if !done[f] && d < best {
-				cur, best = f, d
+				cur, best, found = f, d, true
 			}
 		}
-		if cur < 0 || cur == toFloor {
+		if !found || cur == toFloor {
 			break
 		}
 		done[cur] = true
 
 		for _, st := range adj[cur] {
-			cost := best + math.Abs(st.col-at[cur]) + transferCost
+			cost := best + math.Abs(st.col-at[cur]) + st.hop
 			if st.shaft != 0 && elevCost != nil {
 				cost += elevCost(st.shaft, st.from, st.to)
 			}
@@ -129,6 +141,9 @@ func (g *Grid) PathVia(fromFloor, fromCol, toFloor, toCol int, elevCost Elevator
 	for _, st := range steps {
 		wp = append(wp, Waypoint{Col: st.col, Floor: float64(st.from), Mode: ModeWalk})
 		mode := ModeStair
+		if st.moving {
+			mode = ModeEscalator
+		}
 		if st.shaft != 0 {
 			mode = ModeElevator
 		}

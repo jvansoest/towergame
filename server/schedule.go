@@ -22,7 +22,7 @@ func (w *World) goalFor(p *sim, weekday bool, mod int) goal {
 	if p.transient {
 		// Still on the way: keep going, but not forever.
 		if p.leave == 0 {
-			if w.simTime-p.bornAt > visitPatience {
+			if w.simTime-p.bornAt > visitPatience*p.pace {
 				return out
 			}
 			return home
@@ -34,6 +34,10 @@ func (w *World) goalFor(p *sim, weekday bool, mod int) goal {
 	}
 	if !presentNow(p.category, weekday, mod, p.shiftIn, p.shiftOut) {
 		return out
+	}
+	// A maid goes where the dirt is.
+	if p.job.present {
+		return p.job
 	}
 	// Lunch runs in sittings, not one rush.
 	eat := lunchStart + p.lunchAt
@@ -55,6 +59,10 @@ func presentNow(cat model.Category, weekday bool, mod, in, out int) bool {
 		return !(weekday && mod >= 8*60+30+in && mod < 14*60+out)
 	case model.CategoryHotel:
 		return mod >= 17*60+in || mod < 6*60+30+out
+	case model.CategoryMedical:
+		return mod >= 8*60+in && mod < 20*60+out
+	case model.CategoryService:
+		return mod >= 7*60+in && mod < 21*60+out
 	default:
 		return false
 	}

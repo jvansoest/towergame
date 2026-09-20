@@ -17,6 +17,7 @@ type anyMsg struct {
 	Type  string   `json:"type"`
 	Chat  []string `json:"chat"`
 	Clock Clock    `json:"clock"`
+	Money int      `json:"money"`
 	Grid  struct {
 		Width  int      `json:"width"`
 		Floors int      `json:"floors"`
@@ -154,6 +155,65 @@ func TestSnapshotBroadcast(t *testing.T) {
 			}
 			return
 		}
+	}
+}
+
+// A client cut off mid-session leaves
+// nothing registered behind.
+
+// A resync answers promptly, whole.
+func TestResync(t *testing.T) {
+	conn, ctx := dialTestServer(t)
+	readRaw(t, ctx, conn) // chatUpdate
+	readRaw(t, ctx, conn) // snapshot
+
+	if err := wsjson.Write(ctx, conn, map[string]any{
+		"type": "resync",
+	}); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+	for {
+		m := readRaw(t, ctx, conn)
+		if m.Type != "snapshot" {
+			continue // sims and other chatter
+		}
+		if m.Money != startMoney {
+			t.Fatalf("resync money: want %d, got %d", startMoney, m.Money)
+		}
+		return
+	}
+}
+
+func TestDroppedClientLeaves(t *testing.T) {
+	hub := newHub()
+	go hub.run()
+	srv := httptest.NewServer(http.HandlerFunc(hub.serveWS))
+	t.Cleanup(srv.Close)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	t.Cleanup(cancel)
+
+	wsURL := "ws" + strings.TrimPrefix(srv.URL, "http")
+	conn, _, err := websocket.Dial(ctx, wsURL, nil)
+	if err != nil {
+		t.Fatalf("dial: %v", err)
+	}
+	readRaw(t, ctx, conn) // snapshot, so the client is known
+
+	for i := 0; i < 100 && len(hub.clients) != 1; i++ {
+		time.Sleep(20 * time.Millisecond)
+	}
+	if len(hub.clients) != 1 {
+		t.Fatalf("want 1 registered client, got %d", len(hub.clients))
+	}
+
+	conn.CloseNow() // crash, no goodbye frame
+
+	for i := 0; i < 100 && len(hub.clients) != 0; i++ {
+		time.Sleep(20 * time.Millisecond)
+	}
+	if len(hub.clients) != 0 {
+		t.Fatal("client stayed registered after its link died")
 	}
 }
 

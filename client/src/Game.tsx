@@ -7,6 +7,8 @@ import Skyline from "./Skyline";
 import Scenery from "./Scenery";
 import Tower, { ShaftGhost } from "./Tower";
 import ElevatorCars from "./ElevatorCars";
+import Vehicles from "./Vehicles";
+import Train, { Tunnel } from "./Train";
 import Sims from "./Sims";
 import useBuildInput from "./useBuildInput";
 import { CELL_W, CELL_H } from "./dims";
@@ -36,7 +38,10 @@ const Game = () => {
   }, []);
 
   const planeW = grid ? grid.width * CELL_W : PLANE_W;
-  const planeH = grid ? grid.floors * CELL_H : PLANE_H;
+  // From the deepest basement floor to the top.
+  const deep = grid?.basement ?? 0;
+  const planeH = grid ? (grid.floors + deep) * CELL_H : PLANE_H;
+  const planeY = grid ? ((grid.floors - deep) * CELL_H) / 2 : PLANE_H / 2;
 
   return (
     <>
@@ -48,7 +53,7 @@ const Game = () => {
 
       {/* Invisible build surface. */}
       <mesh
-        position={[0, planeH / 2, 0]}
+        position={[0, planeY, 0]}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerOut={() => setHover(null)}
@@ -62,6 +67,9 @@ const Game = () => {
       {grid && <Tower grid={grid} />}
       {grid && preview && <ShaftGhost grid={grid} drag={preview} />}
       {grid && <ElevatorCars gridWidth={grid.width} />}
+      {grid && <Vehicles gridWidth={grid.width} />}
+      {grid && <Tunnel grid={grid} />}
+      {grid && <Train grid={grid} />}
 
       {grid && (
         <Suspense fallback={null}>

@@ -23,6 +23,8 @@ export function useSelectedRoom() {
 export type Hover =
   | { kind: "room"; key: string }
   | { kind: "stair"; key: string }
+  | { kind: "base"; key: string }
+  | { kind: "ramp"; key: string }
   | { kind: "shaft"; id: number }
   | { kind: "car"; id: number }
   | { kind: "sim"; id: number }

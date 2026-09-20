@@ -21,7 +21,10 @@ export const WALL: Record<string, string> = {
   hotel: "#b39ddb",
   food: "#f6e0dc",
   retail: "#efe6f6",
-  entertainment: "#26263a",
+  service: "#e3ecef",
+  medical: "#e6f2f0",
+  transit: "#dfe3ea",
+  parking: "#565c66",
 };
 
 // Floor color per category.
@@ -31,3 +34,17 @@ export const FLOOR: Record<string, string> = {
 
 // Concrete used for floors, ceilings, and side walls.
 export const CONCRETE = "#6b7280";
+
+// Bar colours per room type: front, top, stool.
+export const BAR_LOOK: Record<string, [string, string, string]> = {
+  izakaya: ["#4a2a1c", "#9c6a3f", "#7a4a2b"],
+  icecream: ["#f4a3bd", "#fbf6ee", "#e0709a"],
+  burger: ["#d94f34", "#f2c230", "#3c3f46"],
+  pizza: ["#2a6a3f", "#fbf6ee", "#c0392b"],
+  noodle: ["#2f5d62", "#c79a5a", "#c0392b"],
+};
+
+// The look for a type; plain wood as fallback.
+export function barLook(type: string): [string, string, string] {
+  return BAR_LOOK[type] ?? BAR_LOOK.izakaya;
+}

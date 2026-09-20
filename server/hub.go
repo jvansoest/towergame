@@ -3,6 +3,8 @@ package main
 import (
 	"log"
 	"time"
+
+	"towergame/server/model"
 )
 
 // Simulation ticks per second.
@@ -66,6 +68,9 @@ func (h *Hub) run() {
 			if h.world.Step(dtSeconds) {
 				h.broadcast(h.world.Snapshot())
 			}
+			if rep := h.world.TakeReport(); rep != nil {
+				h.broadcast(*rep)
+			}
 			h.tickCount++
 			if h.tickCount%broadcastEvery == 0 {
 				h.broadcast(h.world.SimsUpdate())
@@ -78,7 +83,19 @@ func (h *Hub) run() {
 func (h *Hub) apply(cmd command) {
 	switch cmd.msg.Type {
 	case "placeroom":
-		if err := h.world.Place(cmd.msg.Room, cmd.msg.Floor, cmd.msg.Col); err != nil {
+		align := model.Alignment(cmd.msg.Align)
+		if align == "" {
+			align = model.AlignNeutral
+		}
+		if err := h.world.Place(cmd.msg.Room, cmd.msg.Floor, cmd.msg.Col, align); err != nil {
+			cmd.client.trySend(ServerError{Type: "error", Reason: err.Error()})
+			return
+		}
+		h.broadcast(h.world.Snapshot())
+
+	case "align":
+		align := model.Alignment(cmd.msg.Align)
+		if err := h.world.SetAlign(cmd.msg.Floor, cmd.msg.Col, align); err != nil {
 			cmd.client.trySend(ServerError{Type: "error", Reason: err.Error()})
 			return
 		}
@@ -93,6 +110,20 @@ func (h *Hub) apply(cmd command) {
 
 	case "placestair":
 		if err := h.world.PlaceStair(cmd.msg.Floor, cmd.msg.Col); err != nil {
+			cmd.client.trySend(ServerError{Type: "error", Reason: err.Error()})
+			return
+		}
+		h.broadcast(h.world.Snapshot())
+
+	case "placeramp":
+		if err := h.world.PlaceRamp(cmd.msg.Floor, cmd.msg.Col); err != nil {
+			cmd.client.trySend(ServerError{Type: "error", Reason: err.Error()})
+			return
+		}
+		h.broadcast(h.world.Snapshot())
+
+	case "placeescalator":
+		if err := h.world.PlaceEscalator(cmd.msg.Floor, cmd.msg.Col); err != nil {
 			cmd.client.trySend(ServerError{Type: "error", Reason: err.Error()})
 			return
 		}
@@ -129,6 +160,11 @@ func (h *Hub) apply(cmd command) {
 			h.broadcast(h.world.ChatUpdate())
 		}
 
+	case "resync":
+		// A full sweep heals any missed frame.
+		// It doubles as a liveness probe.
+		cmd.client.trySend(h.world.Snapshot())
+
 	default:
 		log.Printf("unknown message type: %q", cmd.msg.Type)
 	}
@@ -147,13 +183,17 @@ func (c *Client) reply(info Inspection, err error, quiet bool) {
 }
 
 // Sends msg to all clients.
-// Drops a client with a full buffer.
+// A client with a full queue loses
+// the whole link, not just this frame:
+// closing the channel ends its writer,
+// closing the socket ends its reader.
 func (h *Hub) broadcast(msg any) {
 	for c := range h.clients {
 		select {
 		case c.send <- msg:
 		default:
 			close(c.send)
+			c.sever()
 			delete(h.clients, c)
 		}
 	}

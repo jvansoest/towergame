@@ -15,7 +15,7 @@ func roomWorld(t *testing.T, typeID string) (*World, model.Room) {
 	for c := 0; c < rt.Width+2; c++ {
 		w.grid.Built[0][c] = true
 	}
-	if err := w.Place(typeID, 0, 1); err != nil {
+	if err := w.Place(typeID, 0, 1, model.AlignNeutral); err != nil {
 		t.Fatalf("place %s: %v", typeID, err)
 	}
 	// Noon on a weekday: everyone is in.
@@ -107,5 +107,117 @@ func TestShoppersWalkTheFloor(t *testing.T) {
 		if low < float64(r.Col) || hi[id] > float64(r.Col+rt.Width-1) {
 			t.Fatalf("shopper %d walked out of the shop: %.2f..%.2f", id, low, hi[id])
 		}
+	}
+}
+
+// A home at daybreak: everyone is in.
+func condoWorld(t *testing.T) (*World, model.Room) {
+	t.Helper()
+	w := newWorld()
+	for c := 0; c < 12; c++ {
+		w.grid.Built[0][c] = true
+	}
+	if err := w.Place("condo", 0, 1, model.AlignNeutral); err != nil {
+		t.Fatalf("place condo: %v", err)
+	}
+	return w, model.Room{Type: "condo", Floor: 0, Col: 1}
+}
+
+// Seated means parked on the chair: a sitter
+// out for a stroll must report as up.
+func TestSeatedMeansParked(t *testing.T) {
+	w, r := roomWorld(t, "condo")
+	col := model.SeatCol(r, 0)
+	p := &sim{
+		id: 991, category: model.CategoryResidential,
+		homeF: r.Floor, homeC: col,
+		state: statePresent,
+		x:     float64(col), y: float64(r.Floor),
+		pause: 2, // mid-rest at their seat
+	}
+	w.sims = []*sim{p}
+
+	if !w.seated(p) {
+		t.Fatal("a rested resident on their chair reads as up")
+	}
+
+	p.x = float64(col + 1)
+	if w.seated(p) {
+		t.Fatal("a resident away from their chair reads seated")
+	}
+
+	p.x = float64(col)
+	p.pause = 0 // stirring, not resting yet
+	if w.seated(p) {
+		t.Fatal("the seat claims someone who is walking")
+	}
+}
+
+// Residents rise now and then, wander the
+// flat slowly, and never leave it mid-visit.
+func TestResidentsStrollAtHome(t *testing.T) {
+	w, r := condoWorld(t)
+	for _, p := range w.sims {
+		p.shiftIn = 999 // hold the day: nobody leaves for work
+	}
+
+	for i := 0; i < 1800; i++ { // a minute
+		w.Step(1.0 / 30)
+	}
+	rt := model.RoomTypes[r.Type]
+	moved := false
+	for _, p := range w.sims {
+		if math.Abs(p.x-float64(p.homeC)) > 0.25 {
+			moved = true
+		}
+		if p.x < float64(r.Col) || p.x >= float64(r.Col+rt.Width) {
+			t.Fatalf("resident %d left the flat: x=%.2f", p.id, p.x)
+		}
+	}
+	if !moved {
+		t.Fatal("nobody stirred at home in a minute")
+	}
+}
+
+// Izakaya seats line up in one column, one per spot.
+func TestIzakayaSeatsShareColumn(t *testing.T) {
+	rt := model.RoomTypes["izakaya"]
+	if !rt.Line || rt.Seats != 8 {
+		t.Fatalf("izakaya is %+v", rt)
+	}
+	r := model.Room{Type: "izakaya", Floor: 0, Col: 1}
+	want := model.SeatCol(r, 0)
+	for i := 1; i < rt.Seats; i++ {
+		if got := model.SeatCol(r, i); got != want {
+			t.Fatalf("seat %d at column %d, want %d", i, got, want)
+		}
+	}
+	if want < r.Col || want >= r.Col+rt.Width {
+		t.Fatalf("seat column %d is outside the room", want)
+	}
+}
+
+// Izakaya guests sit still on their stools.
+func TestIzakayaGuestsStaySeated(t *testing.T) {
+	w, r := roomWorld(t, "izakaya")
+	seat := float64(model.SeatCol(r, 0))
+	seen := 0
+	for i := 0; i < 1500; i++ {
+		w.Step(1.0 / 30)
+		for _, p := range w.sims {
+			if !p.transient || p.state != statePresent {
+				continue
+			}
+			seen++
+			if p.x != seat {
+				t.Fatalf("guest %d at column %.2f, want %.0f", p.id, p.x, seat)
+			}
+			if !w.seated(p) {
+				t.Fatalf("guest %d is on the stool but not seated", p.id)
+			}
+		}
+	}
+	if seen == 0 {
+		t.Fatal("no guest reached the izakaya")
 	}
 }

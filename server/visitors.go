@@ -1,6 +1,10 @@
 package main
 
-import "towergame/server/model"
+import (
+	"math/rand"
+
+	"towergame/server/model"
+)
 
 // Customers of shops and eating places.
 const (
@@ -25,8 +29,9 @@ func (w *World) manageVisitors(mod int) {
 		w.roomsByCategory(model.CategoryRetail),
 		w.roomsByCategory(model.CategoryFood)...,
 	)
+	shops = append(shops, w.roomsByCategory(model.CategoryMedical)...)
 	for _, r := range shops {
-		if mod < openMinute(r) || mod >= visitorClose {
+		if !isOpen(r, mod) {
 			continue
 		}
 		rt := model.RoomTypes[r.Type]
@@ -90,6 +95,8 @@ func (w *World) addVisitor(r model.Room, spot int) {
 	w.sims = append(w.sims, &sim{
 		id:        w.nextID,
 		category:  rt.Category,
+		prof:      profVisitor,
+		pace:      1,
 		homeF:     r.Floor,
 		homeC:     col,
 		spot:      spot,
@@ -97,6 +104,87 @@ func (w *World) addVisitor(r model.Room, spot int) {
 		state:     stateOutside,
 		bornAt:    w.simTime,
 	})
+}
+
+// Triads come seldom, and stay long.
+const (
+	triadPace      = 3.0 // patience and stay, times over
+	triadChance    = 0.008
+	triadAngryGust = 0.05 // when a rider is fuming
+	angryStress    = 60.0
+)
+
+// Keeps roughly one triad member about,
+// drawn in by angry riders.
+func (w *World) manageTriads() {
+	if w.tick%visitorEvery != 0 {
+		return
+	}
+	for _, p := range w.sims {
+		if p.prof == profTriad {
+			return // one at a time
+		}
+	}
+	chance := triadChance
+	for _, p := range w.sims {
+		if p.stress >= angryStress {
+			chance = triadAngryGust
+			break
+		}
+	}
+	if rand.Float64() > chance {
+		return
+	}
+	w.spawnTriad()
+}
+
+// Sows one triad member in a shop it runs,
+// or any shop when it runs none.
+func (w *World) spawnTriad() {
+	shops := append(
+		w.roomsByCategory(model.CategoryRetail),
+		w.roomsByCategory(model.CategoryFood)...,
+	)
+	if len(shops) == 0 {
+		return
+	}
+	r := shops[rand.Intn(len(shops))]
+	for _, s := range shops {
+		if s.Alignment == model.AlignTriad {
+			r = s
+			break
+		}
+	}
+	clk := clockFromSimTime(w.simTime)
+	mod := clk.Hour*60 + clk.Minute
+	if !isOpen(r, mod) {
+		return // closed for the day
+	}
+	rt := model.RoomTypes[r.Type]
+	want := visitorsPer
+	if rt.Habit == model.HabitSit {
+		want = rt.Seats
+	}
+	// The same seat economy customers follow:
+	// no double booking, no piling in.
+	taken, coming := w.spotsTaken(r)
+	if coming >= inTransitPer {
+		return
+	}
+	spot := -1
+	for i := 0; i < want; i++ {
+		if !taken[i] {
+			spot = i
+			break
+		}
+	}
+	if spot < 0 {
+		return
+	}
+	w.addVisitor(r, spot)
+	p := w.sims[len(w.sims)-1]
+	p.prof = profTriad
+	p.pace = triadPace
 }
 
 func (w *World) roomsByCategory(cat model.Category) []model.Room {

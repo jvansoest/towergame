@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log"
 	"math"
 	"sort"
 
@@ -14,23 +13,9 @@ const (
 	rethinkEvery = 15   // ticks between dispatch reviews
 	rethinkGain  = 3.0  // cost a better car must beat
 	riderSpacing = 0.45 // cells between riders in a car
-	queueGap     = 1.0  // cells from the shaft to the queue head
+	queueGap     = 1.5  // cells the queue head keeps off the shaft
 	queueSpacing = 0.34 // cells between queued sims
 )
-
-// Reports this tick's arrivals, one line per car.
-func (w *World) logDropOffs() {
-	for id, n := range w.dropped {
-		car, ok := w.bank.Car(id)
-		if !ok || n == 0 {
-			continue
-		}
-		// Restated next tick, so subtract here.
-		log.Printf("car %d (shaft %d): dropping off %d on floor %d (%d aboard)",
-			id, car.Shaft, n, int(math.Round(car.Floor)), car.Riders()-n)
-	}
-	clear(w.dropped)
-}
 
 // Longest wait first, id breaks ties.
 // Reshuffled ties make sims swap places.
@@ -144,7 +129,6 @@ func (w *World) boardQueues() {
 	}
 	for k, ps := range groups {
 		sortQueue(ps) // same order the queue is drawn in
-		boarded := map[transport.CarID]int{}
 		for _, p := range ps {
 			// Whatever opens its doors going your way.
 			car, ok := w.openCar(p, k.floor)
@@ -168,12 +152,6 @@ func (w *World) boardQueues() {
 			p.slot = slot
 			p.boardX = w.slotCol(p.shaft, slot)
 			p.state = stateBoarding
-			boarded[car]++
-		}
-		for id, n := range boarded {
-			car, _ := w.bank.Car(id)
-			log.Printf("car %d (shaft %d): picking up %d on floor %d (%d aboard)",
-				id, car.Shaft, n, k.floor, car.Riders())
 		}
 	}
 }
@@ -253,7 +231,6 @@ func (w *World) ride(p *sim) {
 		return
 	}
 	w.bank.HoldDoors(p.car)
-	w.dropped[p.car]++
 	p.shaft = 0
 	// Keep the column; the path walks them out.
 	p.y = float64(p.exitFloor)

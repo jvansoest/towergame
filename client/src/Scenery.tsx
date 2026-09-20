@@ -1,18 +1,12 @@
 // Everything around the tower: ground, street, and doors.
 
 import { CELL_W, DEPTH, FLOOR_T, WALL_T } from "./dims";
+import Basement from "./Basement";
 import type { GridView } from "./protocol";
 
 // Pavement reaching past both ends of the tower.
 const STREET_PAD = 12;
 const STREET_COLOR = "#4b5563";
-
-// Earth below the street. Basements come later.
-const EARTH_COLOR = "#6b4f36";
-const TOPSOIL_COLOR = "#4a3626";
-const TOPSOIL_T = 0.5;
-const EARTH_D = 60; // world units drawn below ground
-const EARTH_W = 2000; // wide enough to fill a zoomed-out view
 
 // Entrance doors in the lobby's end walls.
 const DOOR_W = 1.8; // across the room depth
@@ -32,12 +26,13 @@ export default function Scenery({
   return (
     <>
       <Ground width={towerW + STREET_PAD * 2} />
+      <Basement grid={grid} />
       {grid && <Doors grid={grid} />}
     </>
   );
 }
 
-// Street level, with solid earth under it.
+// Street level. The earth below is drawn apart.
 function Ground({ width }: { width: number }) {
   return (
     <group>
@@ -45,15 +40,6 @@ function Ground({ width }: { width: number }) {
       <mesh position={[0, FLOOR_T / 2 - 0.02, 0]}>
         <boxGeometry args={[width, FLOOR_T, DEPTH]} />
         <meshStandardMaterial color={STREET_COLOR} />
-      </mesh>
-      {/* The ground line itself. */}
-      <mesh position={[0, -TOPSOIL_T / 2, 0]}>
-        <boxGeometry args={[EARTH_W, TOPSOIL_T, DEPTH]} />
-        <meshStandardMaterial color={TOPSOIL_COLOR} />
-      </mesh>
-      <mesh position={[0, -TOPSOIL_T - EARTH_D / 2, 0]}>
-        <boxGeometry args={[EARTH_W, EARTH_D, DEPTH]} />
-        <meshStandardMaterial color={EARTH_COLOR} />
       </mesh>
     </group>
   );
@@ -93,11 +79,7 @@ function LobbyDoor({ x, facing }: { x: number; facing: number }) {
     >
       <mesh>
         <boxGeometry args={[DOOR_W, DOOR_H, 0.06]} />
-        <meshStandardMaterial
-          color={GLASS_COLOR}
-          transparent
-          opacity={0.45}
-        />
+        <meshStandardMaterial color={GLASS_COLOR} transparent opacity={0.45} />
       </mesh>
       {/* posts, header, threshold, and the mullion */}
       <mesh position={[-half + FRAME_T / 2, 0, 0]}>

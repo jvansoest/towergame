@@ -83,7 +83,7 @@ func TestScheduleShifts(t *testing.T) {
 func TestAddOccupants(t *testing.T) {
 	w := newWorld()
 	w.money = startMoney
-	if err := w.Place("office", 0, 0); err != nil {
+	if err := w.Place("office", 0, 0, model.AlignNeutral); err != nil {
 		t.Fatalf("place: %v", err)
 	}
 	if len(w.sims) != model.RoomTypes["office"].Capacity {
@@ -377,7 +377,7 @@ func TestRemoveRoomFreesCarPlace(t *testing.T) {
 		g.Built[0][c] = true
 		g.Built[1][c] = true
 	}
-	if err := w.Place("office", 1, 0); err != nil {
+	if err := w.Place("office", 1, 0, model.AlignNeutral); err != nil {
 		t.Fatalf("place: %v", err)
 	}
 	if _, err := g.PlaceElevator(1, 20); err != nil {
@@ -618,4 +618,25 @@ func carIDOf(w *World, shaft transport.ShaftID) transport.CarID {
 		return 0
 	}
 	return ids[0]
+}
+
+// The stream flags who is queued at a shaft,
+// so the client can turn them toward the doors.
+func TestSimsUpdateFlagsWaiting(t *testing.T) {
+	w := newWorld()
+	w.sims = []*sim{
+		{id: 1, state: stateWaiting, shaft: 1, x: 3, y: 2},
+		{id: 2, state: stateMoving, x: 5, y: 2},
+	}
+
+	byID := map[int]SimView{}
+	for _, v := range w.SimsUpdate().Sims {
+		byID[v.ID] = v
+	}
+	if !byID[1].Waiting {
+		t.Fatal("the queued sim is not flagged as waiting")
+	}
+	if byID[2].Waiting {
+		t.Fatal("a walking sim is flagged as waiting")
+	}
 }

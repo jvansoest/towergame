@@ -33,14 +33,30 @@ type goal struct {
 	col     int
 }
 
+// What a sim is, for the record and the client.
+type Profession string
+
+const (
+	profVisitor  Profession = "visitor" // drinks, shops, eats, sightsees
+	profResident Profession = "resident"
+	profWorker   Profession = "worker"
+	profSecurity Profession = "security"
+	profTriad    Profession = "triad"
+	profMaid     Profession = "maid"
+	profDoctor   Profession = "doctor"
+	profVIP      Profession = "vip"
+)
+
 // A sim: a resident, worker, guest, or customer.
 type sim struct {
 	id        int
-	category  model.Category
+	category  model.Category // which room kind anchors them
+	prof      Profession
 	homeF     int
 	homeC     int
-	transient bool // customers leave and are removed
-	spot      int  // seat or floor place a customer took
+	transient bool    // customers leave and are removed
+	spot      int     // seat or floor place a customer took
+	pace      float64 // stretches a visitor's patience and stay
 
 	// personal timekeeping, in minutes
 	shiftIn  int // early or late to arrive
@@ -50,6 +66,7 @@ type sim struct {
 	dark   bool    // the room around them is unlit
 	asleep bool    // in bed, so not drawn
 	stress float64 // 0..100, from waiting for elevators
+	peak   float64 // worst stress this quarter
 
 	x, y   float64
 	path   []model.Waypoint
@@ -70,6 +87,13 @@ type sim struct {
 	slot       int     // standing place inside the car
 	waitTime   float64
 
+	// hotel guests and maids
+	subway    bool    // came by train, and leaves by it
+	stayed    bool    // a guest reached their room
+	disturbed bool    // noise drove a guest out
+	job       goal    // the dirty room a maid heads for
+	cleanLeft float64 // seconds of scrubbing left
+
 	// browsing a shop
 	browseX float64 // spot being walked to
 	pause   float64 // seconds left looking at it
@@ -78,11 +102,27 @@ type sim struct {
 // Adds a room's residents, per its capacity.
 func (w *World) addSims(r model.Room) {
 	rt := model.RoomTypes[r.Type]
+	prof := profVisitor // hotel guests are visiting, loosely
+	switch {
+	case r.Type == "security":
+		prof = profSecurity
+	case rt.Category == model.CategoryOffice:
+		prof = profWorker
+	case rt.Category == model.CategoryResidential:
+		prof = profResident
+	case rt.Category == model.CategoryService:
+		prof = profMaid
+	case rt.Category == model.CategoryMedical:
+		prof = profDoctor
+	case rt.Category == model.CategoryHotel:
+		return // guests rent rooms, they do not live here
+	}
 	for i := 0; i < rt.Capacity; i++ {
 		w.nextID++
 		w.sims = append(w.sims, &sim{
 			id:       w.nextID,
 			category: rt.Category,
+			prof:     prof,
 			homeF:    r.Floor,
 			homeC:    model.SeatCol(r, i),
 			state:    stateOutside,
@@ -100,6 +140,9 @@ func (w *World) stepSims(dt float64) {
 	mod := clk.Hour*60 + clk.Minute
 
 	w.manageVisitors(mod)
+	w.manageGuests(mod)
+	w.stepMaids(dt)
+	w.refreshNoise(mod)
 
 	kept := w.sims[:0]
 	for _, p := range w.sims {
@@ -110,13 +153,16 @@ func (w *World) stepSims(dt float64) {
 		if p.state != stateWaiting {
 			p.stress = math.Max(0, p.stress-stressFall*dt)
 		}
+		w.noiseStress(p, dt)
+		p.peak = math.Max(p.peak, p.stress)
 		if p.transient && p.state == stateOutside && p.last == (goal{false, p.homeF, p.homeC}) {
+			w.checkOut(p)
 			continue // customer has left; drop it
 		}
 		kept = append(kept, p)
 	}
 	w.sims = kept
-	w.logDropOffs()
+	w.releaseGuests()
 	w.boardQueues()
 	w.layoutQueues()
 	w.layoutRiders()

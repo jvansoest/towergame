@@ -40,6 +40,32 @@ func TestStairOverlapsStair(t *testing.T) {
 	}
 }
 
+// A stair is hit through both of its rows,
+// matching what the inspector highlights.
+func TestRemoveStairOnEitherRow(t *testing.T) {
+	g := NewGrid(40, 10)
+	for c := 0; c < 4; c++ {
+		g.BuildBase(0, c)
+		g.BuildBase(0, c+10)
+	}
+	if err := g.PlaceStair(0, 0); err != nil {
+		t.Fatalf("stair one: %v", err)
+	}
+	if err := g.PlaceStair(0, 10); err != nil {
+		t.Fatalf("stair two: %v", err)
+	}
+
+	if !g.RemoveStairAt(1, 2) { // landing row
+		t.Fatal("landing-row click missed the first stair")
+	}
+	if !g.RemoveStairAt(0, 12) { // foot row
+		t.Fatal("foot-row click missed the second stair")
+	}
+	if len(g.Stairs) != 0 {
+		t.Fatalf("want no stairs left, got %d", len(g.Stairs))
+	}
+}
+
 func TestPlaceElevator(t *testing.T) {
 	g := NewGrid(40, 20)
 	if _, err := g.PlaceElevator(10, 5); err != nil {

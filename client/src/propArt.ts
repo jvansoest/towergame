@@ -5,6 +5,7 @@ import type * as THREE from "three";
 
 import { CHAIR_H, CHAIR_SEAT } from "./dims";
 import { box, paintTexture, type Draw } from "./paint";
+import { BAR_LOOK } from "./roomTint";
 
 export type Prop = { w: number; h: number; tex: THREE.CanvasTexture };
 
@@ -25,6 +26,20 @@ export function propArt(kind: string): Prop | null {
 type PropSpec = { w: number; h: number; draw: Draw };
 
 const PROPS: Record<string, PropSpec> = {
+  ...barProps(),
+  // Used towels and litter on the floor.
+  mess: {
+    w: 1.4,
+    h: 0.45,
+    draw: (g, w, h) => {
+      box(g, w * 0.05, h * 0.55, w * 0.3, h * 0.45, "#e8e2d0"); // towel
+      box(g, w * 0.1, h * 0.4, w * 0.18, h * 0.2, "#d6cfba");
+      box(g, w * 0.42, h * 0.7, w * 0.22, h * 0.3, "#6b4a2b"); // stain
+      box(g, w * 0.7, h * 0.5, w * 0.2, h * 0.5, "#8c8a72"); // bin bag
+      box(g, w * 0.76, h * 0.35, w * 0.08, h * 0.2, "#8c8a72");
+      box(g, w * 0.55, h * 0.45, w * 0.08, h * 0.2, "#c9463d"); // can
+    },
+  },
   // A dining chair, seen from the side.
   chair: {
     w: 0.6,
@@ -36,6 +51,19 @@ const PROPS: Record<string, PropSpec> = {
       box(g, w * 0.18, h * 0.1, w * 0.12, seat * 0.7, "#a0663d");
       box(g, w * 0.06, seat + h * 0.07, w * 0.13, h * 0.43, "#6b4226");
       box(g, w * 0.8, seat + h * 0.07, w * 0.13, h * 0.43, "#6b4226");
+    },
+  },
+  // The same chair, facing the other way.
+  chairl: {
+    w: 0.6,
+    h: CHAIR_H,
+    draw: (g, w, h) => {
+      const seat = h * CHAIR_SEAT;
+      box(g, 0, seat, w, h * 0.07, "#8b5a33"); // seat
+      box(g, w * 0.82, h * 0.02, w * 0.18, seat, "#7a4a2b"); // back
+      box(g, w * 0.7, h * 0.1, w * 0.12, seat * 0.7, "#a0663d");
+      box(g, w * 0.81, seat + h * 0.07, w * 0.13, h * 0.43, "#6b4226");
+      box(g, w * 0.07, seat + h * 0.07, w * 0.13, h * 0.43, "#6b4226");
     },
   },
   // A dining table, seen from the side.
@@ -66,6 +94,51 @@ const PROPS: Record<string, PropSpec> = {
       box(g, w * 0.9, top + h * 0.09, w * 0.07, h * 0.49, "#7f8b88"); // leg
     },
   },
+  // A shop checkout counter, seen from the side.
+  // Canvas y grows downward: register up top.
+  counter: {
+    w: 2.6,
+    h: 1.05,
+    draw: (g, w, h) => {
+      box(g, w * 0.6, h * 0.06, w * 0.3, h * 0.26, "#2b3440"); // register
+      box(g, w * 0.64, h * 0.1, w * 0.22, h * 0.13, "#5b8fb0"); // screen
+      box(g, 0, h * 0.32, w, h * 0.09, "#8b5a33"); // top slab
+      box(g, 0, h * 0.41, w, h * 0.45, "#6b4226"); // front panel
+      box(g, w * 0.04, h * 0.86, w * 0.92, h * 0.12, "#7a4a2b"); // kick
+    },
+  },
+  // A fast food service counter, seen from
+  // the side. Canvas y grows downward.
+  fastcounter: {
+    w: 4.2,
+    h: 1.05,
+    draw: (g, w, h) => {
+      box(g, w * 0.86, h * 0.06, w * 0.11, h * 0.26, "#2b3440"); // till
+      box(g, w * 0.88, h * 0.1, w * 0.07, h * 0.13, "#5b8fb0"); // screen
+      box(g, 0, h * 0.32, w, h * 0.09, "#f2e3c8"); // top slab
+      box(g, 0, h * 0.41, w, h * 0.45, "#d94f34"); // front panel
+      box(g, w * 0.04, h * 0.86, w * 0.92, h * 0.12, "#b03a24"); // kick
+    },
+  },
+  // A staircase, seen from the side, climbing
+  // left to right like the runs in game.
+  stair: {
+    w: 6,
+    h: 1.7,
+    draw: (g, w, h) => {
+      const steps = 8;
+      const rise = h * 0.85;
+      for (let i = 0; i < steps; i++) {
+        const sw = w / steps;
+        const sh = (rise * (i + 1)) / steps;
+        box(g, i * sw, h * 0.9 - sh, sw + 1, sh, i % 2 ? "#8b5a33" : "#9c6a3f");
+      }
+      box(g, 0, h * 0.88, w, h * 0.07, "#6b4226"); // stringer
+      box(g, w * 0.02, h * 0.28, w * 0.05, h * 0.6, "#6b4226"); // post
+      box(g, w * 0.9, h * 0.04, w * 0.05, h * 0.84, "#6b4226"); // post
+      box(g, 0, h * 0.28, w * 0.94, h * 0.06, "#8b5a33"); // handrail
+    },
+  },
   // Three z's drifting up from a sleeper.
   // The frames differ by one step, so they rise.
   zzz0: zzzFrame(0),
@@ -92,4 +165,28 @@ function zzzFrame(phase: number): PropSpec {
       }
     },
   };
+}
+
+// Bar ends and stools, one pair per room look.
+function barProps(): Record<string, PropSpec> {
+  const out: Record<string, PropSpec> = {};
+  for (const [id, [front, top, seat]] of Object.entries(BAR_LOOK)) {
+    out[`barend_${id}`] = {
+      w: 0.9,
+      h: 1,
+      draw: (g, w, h) => {
+        box(g, 0, 0, w, h * 0.1, top);
+        box(g, w * 0.06, h * 0.1, w * 0.88, h * 0.9, front);
+      },
+    };
+    out[`stool_${id}`] = {
+      w: 0.4,
+      h: 0.475,
+      draw: (g, w, h) => {
+        box(g, 0, 0, w, h * 0.15, seat);
+        box(g, w * 0.4, h * 0.15, w * 0.2, h * 0.85, front);
+      },
+    };
+  }
+  return out;
 }

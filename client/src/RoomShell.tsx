@@ -1,6 +1,6 @@
 // The box a room sits in: back wall and end walls.
 
-import { WALL_T } from "./dims";
+import { DIVIDER_CUT_Z, WALL_T } from "./dims";
 import { CONCRETE } from "./roomTint";
 import { tile } from "./layout";
 
@@ -74,23 +74,29 @@ export function BackWall({
   );
 }
 
-// A concrete side wall whose inner face is tinted.
-export function SideWall({
-  x,
-  innerFace,
+// One concrete slab with a tinted inner face.
+function WallBox({
+  w,
   h,
-  depth,
+  d,
+  x,
+  y,
+  z,
+  innerFace,
   tint,
 }: {
-  x: number;
-  innerFace: number;
+  w: number;
   h: number;
-  depth: number;
+  d: number;
+  x: number;
+  y: number;
+  z: number;
+  innerFace: number;
   tint: string;
 }) {
   return (
-    <mesh position={[x, 0, 0]}>
-      <boxGeometry args={[WALL_T, h, depth]} />
+    <mesh position={[x, y, z]}>
+      <boxGeometry args={[w, h, d]} />
       {[0, 1, 2, 3, 4, 5].map((i) => (
         <meshStandardMaterial
           key={i}
@@ -99,5 +105,54 @@ export function SideWall({
         />
       ))}
     </mesh>
+  );
+}
+
+// A side wall. Party walls to neighbouring rooms
+// stop short of the front third, leaving the
+// walkway open, so sims never cross concrete.
+export function SideWall({
+  x,
+  innerFace,
+  h,
+  depth,
+  tint,
+  shared = false,
+}: {
+  x: number;
+  innerFace: number;
+  h: number;
+  depth: number;
+  tint: string;
+  shared?: boolean;
+}) {
+  if (!shared) {
+    return (
+      <WallBox
+        w={WALL_T}
+        h={h}
+        d={depth}
+        x={x}
+        y={0}
+        z={0}
+        innerFace={innerFace}
+        tint={tint}
+      />
+    );
+  }
+
+  // Full height, but only up to the cut.
+  const d = depth / 2 + DIVIDER_CUT_Z;
+  return (
+    <WallBox
+      w={WALL_T}
+      h={h}
+      d={d}
+      x={x}
+      y={0}
+      z={-depth / 2 + d / 2}
+      innerFace={innerFace}
+      tint={tint}
+    />
   );
 }

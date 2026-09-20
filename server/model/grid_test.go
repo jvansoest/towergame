@@ -81,8 +81,8 @@ func TestHeightExceedsFloors(t *testing.T) {
 
 func TestOutOfRange(t *testing.T) {
 	g := NewGrid(10, 5)
-	if err := g.Place("condo", 0, 5); err == nil {
-		t.Fatal("want column error, got nil") // width 10 from col 5 exceeds width 10
+	if err := g.Place("office", 0, 5); err == nil {
+		t.Fatal("want column error, got nil") // width 9 from col 5 exceeds width 10
 	}
 	if err := g.Place("office", 9, 0); err == nil {
 		t.Fatal("want floor error, got nil")

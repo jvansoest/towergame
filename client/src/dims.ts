@@ -12,8 +12,16 @@ export const WALL_T = 0.15; // side wall, at a room's ends
 
 // Depth layers, back to front.
 export const PROP_Z = 0.5; // flat furniture
+export const TABLE_Z = PROP_Z - 0.1; // tabletops
 export const SIM_Z = 1; // people
 export const FRONT_Z = 1.6; // stairs, shafts, cars
+
+// Bar counter, front to back.
+export const BAR_W = 0.8;
+export const BAR_H = 1;
+export const BAR_Z_BACK = -0.95; // first seat
+export const BAR_Z_FRONT = 1; // last seat
+export const BAR_SERVER_Z = 0; // server, mid counter
 
 // Elevator shaft and its cars.
 export const SHAFT_CELLS = 2; // matches model.ElevatorWidth
@@ -21,6 +29,10 @@ export const CAR_W = 2.2;
 export const CAR_H = CELL_H * 0.85;
 export const CAR_D = 0.5;
 export const CAR_Z = 0.12; // depth between cars in one shaft
+
+// Party walls between rooms stop short of
+// the front, past this z they are absent.
+export const DIVIDER_CUT_Z = 0.5;
 
 // A sim, and the chair it sits on.
 export const SIM_H = 1.9;
@@ -35,6 +47,7 @@ export const CHAIR_SEAT = (SIM_H * SEAT_H) / CHAIR_H;
 export const DAY = "#ffffff";
 export const NIGHT = "#4a5570";
 export const HIGHLIGHT = "#fde68a"; // what the pointer is over
+export const DOOMED = "#f87171"; // what removal will take
 
 // Grid column to world x (cell center).
 export function colToX(col: number, gridWidth: number): number {

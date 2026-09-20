@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"towergame/server/model"
 	"towergame/server/transport"
 )
 
@@ -23,7 +24,7 @@ func TestInspectSimShowsTrip(t *testing.T) {
 			g.Built[f][c] = true
 		}
 	}
-	if err := w.Place("condo", 7, 24); err != nil {
+	if err := w.Place("condo", 7, 24, model.AlignNeutral); err != nil {
 		t.Fatalf("condo: %v", err)
 	}
 	if len(w.sims) == 0 {

@@ -11,7 +11,7 @@ import (
 
 // A room, shaft, or stair at a cell.
 func (w *World) InspectCell(floor, col int) (Inspection, error) {
-	if floor < 0 || floor >= w.grid.Floors || col < 0 || col >= w.grid.Width {
+	if !w.grid.InRange(floor, col) {
 		return Inspection{}, fmt.Errorf("cell out of range")
 	}
 	if i := w.grid.RoomAt(floor, col); i >= 0 {
@@ -20,10 +20,24 @@ func (w *World) InspectCell(floor, col int) (Inspection, error) {
 	if e, ok := w.grid.ElevatorCell(floor, col); ok {
 		return w.shaftCard(e), nil
 	}
-	if s, ok := w.grid.StairCell(floor, col); ok {
+	if r, ok := w.grid.RampAt(floor, col); ok {
 		return Inspection{
 			Type:  "inspect",
-			Title: "Stairs",
+			Title: "Car ramp",
+			Lines: []string{
+				fmt.Sprintf("Floor %d, sloping %s", r.Floor, rampSide(r)),
+				fmt.Sprintf("Cars in the garage: %d", len(w.vehicles)),
+			},
+		}, nil
+	}
+	if s, ok := w.grid.StairCell(floor, col); ok {
+		title := "Stairs"
+		if s.Escalator {
+			title = "Escalator"
+		}
+		return Inspection{
+			Type:  "inspect",
+			Title: title,
 			Lines: []string{
 				fmt.Sprintf("Floors %d to %d", s.Floor, s.Floor+model.StairRise),
 			},
@@ -51,7 +65,80 @@ func (w *World) roomCard(r model.Room) Inspection {
 	if rt.Seats > 0 {
 		lines = append(lines, fmt.Sprintf("Seats: %d", rt.Seats))
 	}
+	lines = append(lines, "Alignment: "+string(r.Alignment))
+	lines = append(lines, w.stayLines(r, rt)...)
 	return Inspection{Type: "inspect", Title: rt.Name, Lines: lines}
+}
+
+// Which way a ramp run slants down.
+func rampSide(r model.Ramp) string {
+	if r.DownRight() {
+		return "down to the right"
+	}
+	return "down to the left"
+}
+
+// Rent, cleanliness, and noise lines for a room.
+func (w *World) stayLines(r model.Room, rt model.RoomType) []string {
+	var lines []string
+	if rt.Lease > 0 {
+		lines = append(lines, fmt.Sprintf("Lease: $%d per quarter", rt.Lease))
+	}
+	if rt.Sale > 0 {
+		lines = append(lines, fmt.Sprintf("Sale: $%d per customer", rt.Sale))
+	}
+	lines = append(lines, fmt.Sprintf("Upkeep: $%d per quarter", rt.Cost/upkeepShare))
+	if rt.Noise > 0 {
+		lines = append(lines, "Noise: "+noiseName(float64(rt.Noise)))
+	}
+	if rt.Category == model.CategoryHotel {
+		state, clean := "vacant", "clean"
+		if r.Booked {
+			state = "rented"
+		}
+		if r.Dirty {
+			clean = "dirty"
+		}
+		lines = append(lines, "Status: "+state, "Cleanliness: "+clean,
+			fmt.Sprintf("Rent: $%d per guest", rt.Rent))
+	}
+	if bedroom(rt.Category) {
+		if j := w.grid.RoomAt(r.Floor, r.Col); j >= 0 && j < len(w.noise) {
+			lines = append(lines, "Noise next door: "+noiseName(w.noise[j]))
+		}
+	}
+	if rt.Category == model.CategoryTransit {
+		state := "no train"
+		if t := w.train; t != nil {
+			state = map[int]string{
+				trainArriving: "a train is arriving",
+				trainDwelling: "a train is at the platform",
+				trainLeaving:  "a train is leaving",
+			}[t.phase]
+		}
+		lines = append(lines, "Now: "+state)
+	}
+	if rt.Category == model.CategoryParking {
+		cars := 0
+		for _, v := range w.vehicles {
+			if v.floor == r.Floor && v.col == r.Col {
+				cars++
+			}
+		}
+		lines = append(lines, fmt.Sprintf("Cars: %d / %d", cars, rt.Slots),
+			fmt.Sprintf("Fee: $%d per car", parkFee))
+	}
+	if rt.Category == model.CategoryService {
+		maids := 0
+		for _, p := range w.sims {
+			if p.prof == profMaid && p.homeF == r.Floor &&
+				p.homeC >= r.Col && p.homeC < r.Col+rt.Width {
+				maids++
+			}
+		}
+		lines = append(lines, fmt.Sprintf("Maids: %d", maids))
+	}
+	return lines
 }
 
 // A shaft and the cars running in it.
@@ -110,6 +197,8 @@ func (w *World) InspectSim(id int) (Inspection, error) {
 			continue
 		}
 		lines := []string{
+			"Type: " + kindName(p),
+			"Alignment: " + string(simAlign(p)),
 			"From: " + w.placeName(p.from),
 			"To: " + w.placeName(p.last),
 			"Now: " + w.simDoing(p),
@@ -123,6 +212,38 @@ func (w *World) InspectSim(id int) (Inspection, error) {
 	return Inspection{}, fmt.Errorf("no such sim")
 }
 
+// A sim's leaning, from its profession.
+func simAlign(p *sim) model.Alignment {
+	switch p.prof {
+	case profTriad:
+		return model.AlignTriad
+	case profSecurity:
+		return model.AlignGood
+	}
+	return model.AlignNeutral
+}
+
+// What kind of sim this is.
+func kindName(p *sim) string {
+	switch p.prof {
+	case profWorker:
+		return "Worker"
+	case profResident:
+		return "Resident"
+	case profSecurity:
+		return "Security officer"
+	case profTriad:
+		return "Triad member"
+	case profMaid:
+		return "Maid"
+	case profDoctor:
+		return "Doctor"
+	case profVIP:
+		return "VIP"
+	}
+	return "Visitor"
+}
+
 // Names the room at a goal, or the street.
 func (w *World) placeName(g goal) string {
 	if !g.present {
@@ -133,22 +254,6 @@ func (w *World) placeName(g goal) string {
 		return fmt.Sprintf("%s, floor %d", name, g.floor)
 	}
 	return fmt.Sprintf("Floor %d", g.floor)
-}
-
-// What kind of sim this is.
-func kindName(p *sim) string {
-	if p.transient {
-		return "Customer"
-	}
-	switch p.category {
-	case model.CategoryOffice:
-		return "Office worker"
-	case model.CategoryResidential:
-		return "Resident"
-	case model.CategoryHotel:
-		return "Hotel guest"
-	}
-	return "Visitor"
 }
 
 // How much elevator waiting has worn a sim down.
@@ -180,6 +285,9 @@ func (w *World) simDoing(p *sim) string {
 	}
 	if p.asleep {
 		return "asleep"
+	}
+	if p.job.present {
+		return "cleaning a room"
 	}
 	if w.seated(p) {
 		return "sitting down"

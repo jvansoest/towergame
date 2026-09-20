@@ -48,6 +48,24 @@ export const OUTFITS: Outfit[] = [
   { shirt: "#c25b8a", trousers: "#333a3f", skin: "#e0ac69", shoes: "#40342a" },
 ];
 
+// Security officers all wear this one kit.
+// Kept out of the crowd's random cycle.
+export const UNIFORM: Outfit = {
+  shirt: "#2b3a55",
+  trousers: "#1f2436",
+  skin: "#c68642",
+  shoes: "#15171f",
+};
+
+// Triad members wear a black smoking, so a
+// sharp eye can pick them from the crowd.
+export const SMOKING: Outfit = {
+  shirt: "#17171c",
+  trousers: "#101014",
+  skin: "#c68642",
+  shoes: "#0c0c10",
+};
+
 // Which garment covers the vertices of a bone.
 function partOfBone(name: string): Part {
   const n = name.toLowerCase();
@@ -60,7 +78,10 @@ function partOfBone(name: string): Part {
 }
 
 // Copies a mesh, colouring each vertex by its bone.
-export function dress(mesh: THREE.SkinnedMesh, outfit: Outfit): THREE.BufferGeometry {
+export function dress(
+  mesh: THREE.SkinnedMesh,
+  outfit: Outfit,
+): THREE.BufferGeometry {
   const geo = mesh.geometry.clone();
   const index = geo.getAttribute("skinIndex");
   const weight = geo.getAttribute("skinWeight");
@@ -91,10 +112,18 @@ export function dress(mesh: THREE.SkinnedMesh, outfit: Outfit): THREE.BufferGeom
 export function wear(
   root: THREE.Object3D,
   outfit: Map<string, THREE.BufferGeometry>,
-  mat: THREE.Material
+  mat: THREE.Material,
 ) {
   root.traverse((o) => {
     const m = o as THREE.SkinnedMesh;
     if (m.isSkinnedMesh && outfit.has(m.name)) m.material = mat;
   });
 }
+
+// A VIP wears a cream suit with gold trim.
+export const VIP: Outfit = {
+  shirt: "#efe6c8",
+  trousers: "#d8ccaa",
+  skin: "#e0ac69",
+  shoes: "#7a5a2a",
+};

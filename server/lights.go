@@ -36,8 +36,11 @@ func lit(r model.Room, weekday bool, mod int, busy bool) bool {
 		up := (wakeTime + roomOffset(r, 4, lightSpread)) % dayOfMins
 		return !(mod >= out || mod < up)
 
-	case model.CategoryRetail, model.CategoryFood:
+	case model.CategoryRetail, model.CategoryFood, model.CategoryMedical:
 		// Lit while the doors are open.
+		if model.RoomTypes[r.Type].Late {
+			return busy || isOpen(r, mod)
+		}
 		open := mod >= openMinute(r) && mod < visitorClose+roomOffset(r, 5, 30)
 		return busy || open
 	}

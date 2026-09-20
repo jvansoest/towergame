@@ -44,7 +44,7 @@ func TestShopAwaitsOneCustomer(t *testing.T) {
 		g.Built[1][c] = true
 	}
 	// A shop upstairs with no way to reach it.
-	if err := w.Place("shop", 1, 2); err != nil {
+	if err := w.Place("shop", 1, 2, model.AlignNeutral); err != nil {
 		t.Fatalf("shop: %v", err)
 	}
 	w.simTime = float64(12*60-startMinuteOfDay) / gameMinutesPerRealSecond
@@ -66,7 +66,7 @@ func TestCustomersGiveUpTravelling(t *testing.T) {
 		w.grid.Built[0][c] = true
 		w.grid.Built[1][c] = true
 	}
-	if err := w.Place(r.Type, r.Floor, r.Col); err != nil {
+	if err := w.Place(r.Type, r.Floor, r.Col, model.AlignNeutral); err != nil {
 		t.Fatalf("shop: %v", err)
 	}
 	w.simTime = float64(12*60-startMinuteOfDay) / gameMinutesPerRealSecond

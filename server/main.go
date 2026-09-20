@@ -13,6 +13,7 @@ const addr = "0.0.0.0:7777"
 func main() {
 	hub := newHub()
 	hub.world.seed()
+	hub.world.startCareer()
 	go hub.run()
 
 	mux := http.NewServeMux()

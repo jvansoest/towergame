@@ -12,7 +12,7 @@ export type Draw = (g: CanvasRenderingContext2D, w: number, h: number) => void;
 export function paintTexture(
   width: number,
   height: number,
-  draw: Draw
+  draw: Draw,
 ): THREE.CanvasTexture | null {
   const cv = document.createElement("canvas");
   cv.width = Math.round(width * PPU);
@@ -36,14 +36,19 @@ export function box(
   y: number,
   w: number,
   h: number,
-  color: string
+  color: string,
 ) {
   g.fillStyle = color;
   g.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
 }
 
 // A bed seen from the side, headboard left.
-export function bed(g: CanvasRenderingContext2D, x: number, base: number, s: number) {
+export function bed(
+  g: CanvasRenderingContext2D,
+  x: number,
+  base: number,
+  s: number,
+) {
   box(g, x, base - 13 * s, 4 * s, 13 * s, "#7a4a2b"); // headboard
   box(g, x, base - 7 * s, 26 * s, 3 * s, "#d9d2c4"); // mattress
   box(g, x + 4 * s, base - 9 * s, 7 * s, 2 * s, "#f4f1ea"); // pillow
@@ -56,7 +61,7 @@ export function wardrobe(
   g: CanvasRenderingContext2D,
   x: number,
   base: number,
-  s: number
+  s: number,
 ) {
   box(g, x, base - 30 * s, 16 * s, 30 * s, "#6b4226");
   box(g, x + 1 * s, base - 28 * s, 6 * s, 26 * s, "#8b5a33");
@@ -65,7 +70,12 @@ export function wardrobe(
 }
 
 // A sofa facing the viewer.
-export function sofa(g: CanvasRenderingContext2D, x: number, base: number, s: number) {
+export function sofa(
+  g: CanvasRenderingContext2D,
+  x: number,
+  base: number,
+  s: number,
+) {
   box(g, x, base - 13 * s, 22 * s, 8 * s, "#3f6f5e");
   box(g, x, base - 7 * s, 22 * s, 7 * s, "#4e876f");
   box(g, x, base - 15 * s, 3 * s, 15 * s, "#35604f");
@@ -77,7 +87,7 @@ export function diningSet(
   g: CanvasRenderingContext2D,
   x: number,
   base: number,
-  s: number
+  s: number,
 ) {
   box(g, x + 4 * s, base - 12 * s, 18 * s, 2 * s, "#8b5a33");
   box(g, x + 6 * s, base - 10 * s, 2 * s, 10 * s, "#6b4226");
@@ -93,7 +103,7 @@ export function kitchen(
   g: CanvasRenderingContext2D,
   x: number,
   base: number,
-  s: number
+  s: number,
 ) {
   box(g, x, base - 14 * s, 26 * s, 14 * s, "#b9b2a4"); // units
   box(g, x, base - 15 * s, 26 * s, 2 * s, "#5c5750"); // worktop
@@ -104,19 +114,77 @@ export function kitchen(
   box(g, x + 40 * s, base - 18 * s, 1 * s, 5 * s, "#8a857c");
 }
 
+// A bedside table with a lamp.
+export function nightstand(
+  g: CanvasRenderingContext2D,
+  x: number,
+  base: number,
+  s: number,
+) {
+  box(g, x, base - 9 * s, 7 * s, 9 * s, "#6b4226");
+  box(g, x + 2 * s, base - 13 * s, 3 * s, 4 * s, "#f2d675"); // lamp
+}
+
+// A flat rug on the floor, trimmed in cream.
+export function rug(
+  g: CanvasRenderingContext2D,
+  x: number,
+  base: number,
+  s: number,
+  colour: string,
+) {
+  box(g, x, base + 1 * s, 30 * s, 2.5 * s, colour);
+  box(g, x, base + 1 * s, 30 * s, 0.6 * s, "#e8d9a0");
+}
+
+// A stone fireplace with logs and a fire.
+export function fireplace(
+  g: CanvasRenderingContext2D,
+  x: number,
+  base: number,
+  s: number,
+) {
+  box(g, x, base - 14 * s, 14 * s, 14 * s, "#8a8079"); // stone
+  for (let i = 0; i < 3; i++) {
+    box(g, x, base - (4 + i * 4) * s, 14 * s, 0.6 * s, "#6f6760"); // joints
+  }
+  box(g, x - 1 * s, base - 15 * s, 16 * s, 2 * s, "#c9bfae"); // mantel
+  box(g, x + 3 * s, base - 10 * s, 8 * s, 10 * s, "#2b1a12"); // firebox
+  box(g, x + 4 * s, base - 3 * s, 6 * s, 2 * s, "#5c3620"); // logs
+  box(g, x + 5 * s, base - 8 * s, 4 * s, 5 * s, "#e8742a"); // flame
+  box(g, x + 6 * s, base - 6 * s, 2 * s, 3 * s, "#f6d75a"); // core
+}
+
+// A wall-hung flat screen.
+export function tv(
+  g: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  s: number,
+) {
+  box(g, x, y, 14 * s, 8 * s, "#1f2933"); // bezel
+  box(g, x + 1 * s, y + 1 * s, 12 * s, 6 * s, "#3d6b8f"); // screen
+  box(g, x + 1 * s, y + 1 * s, 12 * s, 2 * s, "#5c8fb5"); // glare
+}
+
 // A framed picture on the wall.
 export function picture(
   g: CanvasRenderingContext2D,
   x: number,
   y: number,
-  s: number
+  s: number,
 ) {
   box(g, x, y, 10 * s, 8 * s, "#8b5a33");
   box(g, x + 1 * s, y + 1 * s, 8 * s, 6 * s, "#7fa7c4");
 }
 
 // A pot plant.
-export function plant(g: CanvasRenderingContext2D, x: number, base: number, s: number) {
+export function plant(
+  g: CanvasRenderingContext2D,
+  x: number,
+  base: number,
+  s: number,
+) {
   box(g, x + 2 * s, base - 6 * s, 6 * s, 6 * s, "#8c5a3c");
   box(g, x + 3 * s, base - 14 * s, 4 * s, 8 * s, "#2f7d43");
   box(g, x, base - 12 * s, 10 * s, 4 * s, "#3f9142");
@@ -127,7 +195,7 @@ export function cabinet(
   g: CanvasRenderingContext2D,
   x: number,
   base: number,
-  s: number
+  s: number,
 ) {
   box(g, x, base - 20 * s, 11 * s, 20 * s, "#8f9aa5");
   for (let i = 0; i < 3; i++) {
@@ -135,38 +203,33 @@ export function cabinet(
   }
 }
 
+// A see-through pane with a faint tint.
+export function glass(
+  g: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+) {
+  g.clearRect(x, y, w, h);
+  box(g, x, y, w, h, "rgba(143,196,224,0.22)");
+  box(g, x, y, w, h * 0.35, "rgba(169,215,239,0.35)");
+}
+
 // A band of windows near the ceiling.
 export function windowBand(
   g: CanvasRenderingContext2D,
   w: number,
   h: number,
-  frame: string
+  frame: string,
 ) {
   const top = h * 0.1;
   const tall = h * 0.32;
   box(g, 0, top - h * 0.03, w, h * 0.03, frame);
   const unit = Math.max(1, Math.round(w / Math.round(w / (h * 0.9))));
   for (let x = unit * 0.15; x < w - unit * 0.2; x += unit) {
-    box(g, x, top, unit * 0.7, tall, "#8fc4e0");
-    box(g, x, top, unit * 0.7, tall * 0.35, "#a9d7ef");
+    glass(g, x, top, unit * 0.7, tall);
     box(g, x + unit * 0.7, top, unit * 0.3, tall, frame);
-  }
-}
-
-// A serving counter with a menu board.
-export function counter(
-  g: CanvasRenderingContext2D,
-  x: number,
-  base: number,
-  s: number,
-  wide: number,
-  face: string
-) {
-  box(g, x, base - 14 * s, wide, 14 * s, face);
-  box(g, x, base - 16 * s, wide, 2 * s, "#e8e3d8"); // top
-  box(g, x + 2 * s, base - 27 * s, wide - 4 * s, 8 * s, "#2b3440"); // menu
-  for (let i = 0; i < 3; i++) {
-    box(g, x + 4 * s, base - (25 - i * 3) * s, wide - 8 * s, 1 * s, "#e8c65a");
   }
 }
 
@@ -176,14 +239,21 @@ export function shelfUnit(
   x: number,
   base: number,
   s: number,
-  goods: string[]
+  goods: string[],
 ) {
   box(g, x, base - 26 * s, 18 * s, 26 * s, "#8d8577");
   for (let row = 0; row < 3; row++) {
     const y = base - (24 - row * 8) * s;
     box(g, x + 1 * s, y, 16 * s, 6 * s, "#b3ab9c");
     for (let i = 0; i < 4; i++) {
-      box(g, x + 2 * s + i * 4 * s, y + 1 * s, 3 * s, 5 * s, goods[(row + i) % goods.length]);
+      box(
+        g,
+        x + 2 * s + i * 4 * s,
+        y + 1 * s,
+        3 * s,
+        5 * s,
+        goods[(row + i) % goods.length],
+      );
     }
   }
 }
@@ -193,7 +263,7 @@ export function acrossSpan(
   from: number,
   to: number,
   step: number,
-  fn: (x: number) => void
+  fn: (x: number) => void,
 ) {
   for (let x = from; x + step <= to; x += step) fn(x);
 }
@@ -204,7 +274,7 @@ export function homeShell(
   w: number,
   h: number,
   wall: string,
-  floor: string
+  floor: string,
 ) {
   box(g, 0, 0, w, h, wall);
   const base = h * 0.86;

@@ -4,7 +4,9 @@ import Chat from "./Chat";
 import Game from "./Game";
 import Clock from "./ui/Clock";
 import Budget from "./ui/Budget";
+import CardLinks from "./ui/CardLinks";
 import ErrorToast from "./ui/ErrorToast";
+import ReportToast from "./ui/ReportToast";
 import RoomInspector from "./ui/RoomInspector";
 import RoomPalette from "./ui/RoomPalette";
 
@@ -25,7 +27,9 @@ const App = () => {
         </Canvas>
       </div>
       <Chat />
+      <CardLinks />
       <ErrorToast />
+      <ReportToast />
       <RoomInspector />
     </div>
   );
